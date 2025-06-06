@@ -25,13 +25,16 @@ import {
   AlertCircle,
   CheckCircle
 } from 'lucide-react';
+import jsPDF from 'jspdf';
 
 // Import comprehensive school data
-import { schools, School, getApplicationTimeline, getPrivateSchools, getPublicChoicePrograms, getSchoolsRequiringSSAT } from './data/schools';
+import { comprehensiveSchools as schools, School, getApplicationTimeline, getPreparationTips, getTutoringRecommendations } from './data/comprehensive-schools';
 
 export default function App() {
   const [currentStep, setCurrentStep] = useState(0);
   const [profile, setProfile] = useState({
+    parentName: '',
+    childName: '',
     childAge: 5,
     budget: 0,
     location: 'Vancouver',
@@ -46,11 +49,18 @@ export default function App() {
   const prevStep = () => setCurrentStep(Math.max(currentStep - 1, 0));
   const restart = () => {
     setCurrentStep(0);
-    setProfile({ childAge: 5, budget: 0, location: 'Vancouver', priorities: [] });
+    setProfile({ 
+      parentName: '', 
+      childName: '', 
+      childAge: 5, 
+      budget: 0, 
+      location: 'Vancouver', 
+      priorities: [] 
+    });
     setSelectedSchools([]);
   };
 
-  const priorities = [
+const priorities = [
     'Academic Excellence',
     'Arts & Creativity', 
     'Small Class Sizes',
@@ -80,16 +90,16 @@ export default function App() {
 
   // Helper function to determine appropriate school levels based on child's age
   const getAppropriateSchoolLevels = (age: number): string[] => {
-    if (age >= 2 && age <= 6) {
-      return ['preschool', 'elementary', 'k12'];
-    } else if (age >= 7 && age <= 11) {
+    if (age >= 2 && age <= 5) {
+      return ['preschool', 'k12'];
+    } else if (age >= 6 && age <= 11) {
       return ['elementary', 'k12'];
     } else if (age >= 12 && age <= 14) {
-      return ['middle', 'high', 'k12'];
+      return ['middle', 'k12'];
     } else if (age >= 15 && age <= 18) {
       return ['high', 'k12'];
     } else {
-      return ['preschool', 'elementary', 'middle', 'high', 'k12']; // Show all if age is outside typical range
+      return ['preschool', 'elementary', 'middle', 'high', 'k12'];
     }
   };
 
@@ -97,6 +107,58 @@ export default function App() {
     // Filter by age/grade level appropriateness
     const appropriateLevels = getAppropriateSchoolLevels(profile.childAge);
     if (!appropriateLevels.includes(school.level)) return false;
+    
+    // Filter by location (unless "Flexible" is selected)
+    if (profile.location !== 'Flexible') {
+      const schoolLocation = school.location.toLowerCase();
+      const selectedLocation = profile.location.toLowerCase();
+      
+      // Simple location matching - school location should contain selected location
+      if (!schoolLocation.includes(selectedLocation)) {
+        return false;
+      }
+    }
+    
+    // Filter by educational priorities (if any are selected)
+    if (profile.priorities.length > 0) {
+      const hasMatchingPriority = profile.priorities.some(priority => {
+        const priorityLower = priority.toLowerCase();
+        
+        // Check against specialties
+        const matchesSpecialty = school.specialty.some(spec => {
+          const specLower = spec.toLowerCase();
+          return specLower.includes(priorityLower) || 
+                 priorityLower.includes(specLower) ||
+                 (priorityLower === 'academic excellence' && (specLower.includes('academic') || specLower.includes('excellence') || specLower.includes('gifted'))) ||
+                 (priorityLower === 'arts & creativity' && (specLower.includes('arts') || specLower.includes('creative') || specLower.includes('music') || specLower.includes('drama'))) ||
+                 (priorityLower === 'small class sizes' && specLower.includes('small')) ||
+                 (priorityLower === 'language learning' && (specLower.includes('language') || specLower.includes('bilingual') || specLower.includes('immersion') || specLower.includes('french') || specLower.includes('mandarin'))) ||
+                 (priorityLower === 'gifted programs' && specLower.includes('gifted')) ||
+                 (priorityLower === 'technology focus' && (specLower.includes('technology') || specLower.includes('stem') || specLower.includes('science'))) ||
+                 (priorityLower === 'outdoor education' && (specLower.includes('outdoor') || specLower.includes('nature') || specLower.includes('environmental'))) ||
+                 (priorityLower === 'strong community' && (specLower.includes('community') || specLower.includes('character') || specLower.includes('values')));
+        });
+        
+        // Check against features
+        const matchesFeature = school.features.some(feature => {
+          const featureLower = feature.toLowerCase();
+          return featureLower.includes(priorityLower) || 
+                 (priorityLower === 'small class sizes' && featureLower.includes('small')) ||
+                 (priorityLower === 'academic excellence' && (featureLower.includes('academic') || featureLower.includes('excellence'))) ||
+                 (priorityLower === 'arts & creativity' && featureLower.includes('arts'));
+        });
+        
+        // Check against description
+        const matchesDescription = school.description.toLowerCase().includes(priorityLower) ||
+                                 (priorityLower === 'academic excellence' && school.description.toLowerCase().includes('academic')) ||
+                                 (priorityLower === 'arts & creativity' && school.description.toLowerCase().includes('arts')) ||
+                                 (priorityLower === 'outdoor education' && school.description.toLowerCase().includes('outdoor'));
+        
+        return matchesSpecialty || matchesFeature || matchesDescription;
+      });
+      
+      if (!hasMatchingPriority) return false;
+    }
     
     // Filter by budget
     if (profile.budget === 0 && school.tuition !== 'Free') return false;
@@ -112,50 +174,95 @@ export default function App() {
     return `Up to $${budget.toLocaleString()}/year`;
   };
 
-  const downloadPlan = () => {
+const downloadPlan = () => {
     const selectedSchoolData = schools.filter(s => selectedSchools.includes(s.id));
-    const summary = `
-VANCOUVER EDUCATION PLAN
-Generated: ${new Date().toLocaleDateString()}
-
-FAMILY PROFILE:
-- Child Age: ${profile.childAge} years
-- Budget: ${formatBudget(profile.budget)}
-- Location: ${profile.location}
-- Priorities: ${profile.priorities.join(', ')}
-
-SELECTED SCHOOLS:
-${selectedSchoolData.map(school => `
-${school.name}
-- Type: ${school.type}
-- Location: ${school.location}
-- Grades: ${school.grades}
-- Tuition: ${school.tuition}
-- Specialties: ${school.specialty.join(', ')}
-- Application Deadline: ${school.applicationDeadline}
-`).join('\\n')}
-
-NEXT STEPS:
-1. Visit selected schools
-2. Prepare application materials
-3. Mark important deadlines on calendar
-4. Continue monitoring academic progress
-
-Generated by Vancouver Education Decision Tool
-    `;
-
-    const blob = new Blob([summary], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'vancouver-education-plan.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    
+    // Create PDF
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const margin = 20;
+    let currentY = margin;
+    
+    // Helper function to add text with word wrap
+    const addText = (text: string, fontSize = 10, isBold = false) => {
+      pdf.setFontSize(fontSize);
+      if (isBold) {
+        pdf.setFont('helvetica', 'bold');
+      } else {
+        pdf.setFont('helvetica', 'normal');
+      }
+      
+      const lines = pdf.splitTextToSize(text, pageWidth - 2 * margin);
+      
+      // Check if we need a new page
+      if (currentY + (lines.length * fontSize * 0.4) > pdf.internal.pageSize.getHeight() - margin) {
+        pdf.addPage();
+        currentY = margin;
+      }
+      
+      pdf.text(lines, margin, currentY);
+      currentY += lines.length * fontSize * 0.4 + 5;
+    };
+    
+    // Title with personalization
+    const title = profile.parentName ? 
+      `${profile.parentName.toUpperCase()}'S VANCOUVER EDUCATION PLAN` :
+      'VANCOUVER EDUCATION PLAN';
+    addText(title, 20, true);
+    
+    if (profile.childName) {
+      addText(`For ${profile.childName}`, 14, true);
+    }
+    
+    addText(`Generated: ${new Date().toLocaleDateString()}`, 12);
+    currentY += 10;
+    
+    // Family Profile with names
+    addText('FAMILY PROFILE:', 14, true);
+    if (profile.parentName) addText(`Parent/Guardian: ${profile.parentName}`);
+    if (profile.childName) addText(`Child: ${profile.childName}`);
+    addText(`Child Age: ${profile.childAge} years`);
+    addText(`Budget: ${formatBudget(profile.budget)}`);
+    addText(`Location: ${profile.location}`);
+    addText(`Priorities: ${profile.priorities.join(', ')}`);
+    currentY += 10;
+    
+    // Selected Schools
+    addText('SELECTED SCHOOLS:', 14, true);
+    selectedSchoolData.forEach((school, index) => {
+      addText(`${index + 1}. ${school.name}`, 12, true);
+      addText(`   Type: ${school.type}`);
+      addText(`   Location: ${school.location}`);
+      addText(`   Grades: ${school.grades}`);
+      addText(`   Tuition: ${typeof school.tuition === 'number' ? `$${school.tuition.toLocaleString()}/year` : school.tuition}`);
+      addText(`   Specialties: ${school.specialty.join(', ')}`);
+      addText(`   Application Deadline: ${school.applicationDeadline}`);
+      addText(`   Description: ${school.description}`);
+      currentY += 5;
+    });
+    
+    currentY += 10;
+    
+    // Next Steps
+    addText('NEXT STEPS:', 14, true);
+    addText('1. Visit selected schools and attend information sessions');
+    addText('2. Prepare application materials (transcripts, essays, references)');
+    addText('3. Mark application deadlines on your calendar');
+    addText('4. Register for any required entrance tests');
+    addText('5. Continue monitoring your child\'s academic progress');
+    addText('6. Prepare for interviews if required');
+    
+    currentY += 10;
+    addText('Generated by Vancouver Education Decision Tool', 8);
+    
+    // Save with personalized filename
+    const filename = profile.parentName ? 
+      `${profile.parentName.toLowerCase().replace(/\s+/g, '-')}-education-plan.pdf` :
+      'vancouver-education-plan.pdf';
+    pdf.save(filename);
   };
 
-  return (
+return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
       {/* Header */}
       <header className="bg-white border-b">
@@ -247,6 +354,31 @@ Generated by Vancouver Education Decision Tool
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
+              {/* NEW FAMILY INFORMATION CARD */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Family Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>Parent/Guardian Name</Label>
+                    <Input
+                      value={profile.parentName}
+                      onChange={(e) => setProfile({...profile, parentName: e.target.value})}
+                      placeholder="Your name"
+                    />
+                  </div>
+                  <div>
+                    <Label>Child's Name</Label>
+                    <Input
+                      value={profile.childName}
+                      onChange={(e) => setProfile({...profile, childName: e.target.value})}
+                      placeholder="Your child's name"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle>Child Information</CardTitle>
@@ -374,7 +506,7 @@ Generated by Vancouver Education Decision Tool
           </div>
         )}
 
-        {/* Discovery Step */}
+{/* Discovery Step */}
         {currentStep === 2 && (
           <div className="space-y-6">
             <div className="text-center">
@@ -428,15 +560,22 @@ Generated by Vancouver Education Decision Tool
                       {school.specialty.join(', ')}
                     </div>
                     
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <DollarSign className="w-4 h-4" />
-                        {school.tuition}
+                    <div className="flex flex-col gap-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="w-4 h-4" />
+                          {typeof school.tuition === 'number' ? `$${school.tuition.toLocaleString()}/year` : school.tuition}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          {school.applicationDeadline}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        Due: {school.applicationDeadline}
-                      </div>
+                      {school.preparationStart && (
+                        <div className="text-xs text-orange-600 font-medium">
+                          🎯 Start preparing: {school.preparationStart}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap gap-1">
@@ -471,13 +610,16 @@ Generated by Vancouver Education Decision Tool
           </div>
         )}
 
-        {/* Results Step */}
+        {/* Enhanced Results Step */}
         {currentStep === 3 && (
           <div className="space-y-8">
             <div className="text-center">
-              <h2 className="text-3xl font-bold">Your Education Plan</h2>
+              <h2 className="text-3xl font-bold">
+                {profile.parentName ? `${profile.parentName}'s` : 'Your'} Education Plan
+                {profile.childName && ` for ${profile.childName}`}
+              </h2>
               <p className="text-gray-600 mt-2">
-                Your personalized school recommendations and next steps
+                Your personalized school recommendations and comprehensive action plan
               </p>
             </div>
 
@@ -489,7 +631,7 @@ Generated by Vancouver Education Decision Tool
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-600">
-                    Selected for your family
+                    Selected for {profile.childName || 'your child'}
                   </p>
                 </CardContent>
               </Card>
@@ -513,7 +655,9 @@ Generated by Vancouver Education Decision Tool
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-600">
-                    Planning timeline ready
+                    {profile.childAge <= 5 ? 'Early planning advantage' : 
+                     profile.childAge <= 11 ? 'Perfect timing for research' : 
+                     'Time-sensitive applications'}
                   </p>
                 </CardContent>
               </Card>
@@ -521,7 +665,9 @@ Generated by Vancouver Education Decision Tool
 
             <Card>
               <CardHeader>
-                <CardTitle>Your Selected Schools</CardTitle>
+                <CardTitle>
+                  {profile.childName ? `${profile.childName}'s` : 'Your Child\'s'} Selected Schools
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {schools.filter(s => selectedSchools.includes(s.id)).map((school, index) => (
@@ -546,25 +692,244 @@ Generated by Vancouver Education Decision Tool
               </CardContent>
             </Card>
 
-            <Card className="bg-green-50 border-green-200">
+            {/* Immediate Action Items */}
+            <Card className="bg-red-50 border-red-200">
               <CardHeader>
-                <CardTitle className="text-green-800">Next Steps</CardTitle>
+                <CardTitle className="text-red-800 flex items-center">
+                  <AlertCircle className="w-5 h-5 mr-2" />
+                  Immediate Actions (This Week)
+                </CardTitle>
               </CardHeader>
-              <CardContent className="text-green-700">
-                <ol className="list-decimal list-inside space-y-2">
-                  <li>Download your personalized education plan</li>
-                  <li>Visit the schools you've selected</li>
-                  <li>Mark application deadlines on your calendar</li>
-                  <li>Start preparing application materials</li>
-                  <li>Keep monitoring your child's academic progress</li>
-                </ol>
+              <CardContent className="text-red-700 space-y-3">
+                <div className="flex items-start space-x-3">
+                  <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">Mark Critical Dates</p>
+                    <p className="text-sm">Add all application deadlines to your calendar with 2-week early reminders</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">Start School Research</p>
+                    <p className="text-sm">Visit websites, download information packages, and sign up for newsletters</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">Create Application Tracking System</p>
+                    <p className="text-sm">Spreadsheet or folder system to track requirements, deadlines, and progress</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
+            {/* Short-term Planning */}
+            <Card className="bg-yellow-50 border-yellow-200">
+              <CardHeader>
+                <CardTitle className="text-yellow-800 flex items-center">
+                  <Clock className="w-5 h-5 mr-2" />
+                  Short-term Planning (Next 1-3 Months)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-yellow-700 space-y-4">
+                <div>
+                  <h4 className="font-medium mb-2">School Visits & Information Sessions</h4>
+                  <ul className="space-y-1 text-sm ml-4">
+                    <li>• Book tours at your selected schools (many require advance booking)</li>
+                    <li>• Attend virtual or in-person information nights</li>
+                    <li>• Prepare questions about curriculum, class sizes, and school culture</li>
+                    <li>• Take notes and photos (if permitted) for later comparison</li>
+                  </ul>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">Application Preparation</h4>
+                  <ul className="space-y-1 text-sm ml-4">
+                    <li>• Request transcripts and report cards from current school</li>
+                    <li>• Identify and contact potential references (teachers, coaches, mentors)</li>
+                    <li>• Begin drafting personal statements or essays if required</li>
+                    <li>• Gather documentation (birth certificates, immunization records)</li>
+                  </ul>
+                </div>
+
+                {profile.childAge >= 12 && (
+                  <div>
+                    <h4 className="font-medium mb-2">Test Preparation (If Required)</h4>
+                    <ul className="space-y-1 text-sm ml-4">
+                      <li>• Register for SSAT if applying to competitive private schools</li>
+                      <li>• Consider test prep courses or tutoring (KEY Education, Prep Academy)</li>
+                      <li>• Schedule practice tests and review sessions</li>
+                      <li>• Plan test dates allowing time for retakes if needed</li>
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Medium-term Strategy */}
+            <Card className="bg-blue-50 border-blue-200">
+              <CardHeader>
+                <CardTitle className="text-blue-800 flex items-center">
+                  <FileText className="w-5 h-5 mr-2" />
+                  Medium-term Strategy (3-6 Months)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-blue-700 space-y-4">
+                <div>
+                  <h4 className="font-medium mb-2">Academic Enhancement</h4>
+                  <ul className="space-y-1 text-sm ml-4">
+                    <li>• Focus on strengthening weak subject areas</li>
+                    <li>• Consider enrichment programs that align with your priorities</li>
+                    <li>• Maintain strong grades and positive teacher relationships</li>
+                    <li>• Document achievements, awards, and extracurricular activities</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2">Interview Preparation</h4>
+                  <ul className="space-y-1 text-sm ml-4">
+                    <li>• Practice common interview questions with {profile.childName || 'your child'}</li>
+                    <li>• Help them articulate their interests and goals</li>
+                    <li>• Prepare questions they can ask about the school</li>
+                    <li>• Plan appropriate interview attire</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2">Financial Planning</h4>
+                  <ul className="space-y-1 text-sm ml-4">
+                    <li>• Research scholarship and bursary opportunities</li>
+                    <li>• Calculate total costs including uniforms, supplies, and activities</li>
+                    <li>• Plan payment schedules and explore financing options</li>
+                    <li>• Consider tax implications and education savings plans</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Long-term Considerations */}
+            <Card className="bg-green-50 border-green-200">
+              <CardHeader>
+                <CardTitle className="text-green-800 flex items-center">
+                  <Star className="w-5 h-5 mr-2" />
+                  Long-term Success Strategy
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-green-700 space-y-4">
+                <div>
+                  <h4 className="font-medium mb-2">Backup Plans</h4>
+                  <ul className="space-y-1 text-sm ml-4">
+                    <li>• Apply to safety schools that you'd be happy with</li>
+                    <li>• Research waitlist procedures for competitive schools</li>
+                    <li>• Have a plan for gap year or alternative pathways if needed</li>
+                    <li>• Consider timing of applications for different entry points</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2">Ongoing Monitoring</h4>
+                  <ul className="space-y-1 text-sm ml-4">
+                    <li>• Stay updated on school policy changes and new programs</li>
+                    <li>• Maintain relationships with school admissions offices</li>
+                    <li>• Continue developing {profile.childName || 'your child'}'s interests and talents</li>
+                    <li>• Plan for transitions and adjustment periods</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2">Community Building</h4>
+                  <ul className="space-y-1 text-sm ml-4">
+                    <li>• Connect with other families going through the process</li>
+                    <li>• Join parent groups and school communities early</li>
+                    <li>• Build relationships that will support your family's journey</li>
+                    <li>• Consider volunteering opportunities at prospective schools</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+            {/* Timeline Alert */}
+            {profile.childAge >= 11 && (
+              <Card className="bg-purple-50 border-purple-200">
+                <CardHeader>
+                  <CardTitle className="text-purple-800 flex items-center">
+                    <Calendar className="w-5 h-5 mr-2" />
+                    Critical Timeline Alert
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-purple-700">
+                  <p className="font-medium">
+                    {profile.childAge === 11 ? 
+                      "Grade 6 is crucial for Grade 8 private school applications. Most deadlines are in December-January." :
+                      profile.childAge === 12 ?
+                      "Grade 7 applications are due soon! Focus on completing applications and preparing for interviews." :
+                      "High school applications require immediate attention. Some deadlines may have passed - check current availability."
+                    }
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Application Preparation Tips */}
+            {schools.filter(s => selectedSchools.includes(s.id)).some(school => school.competitiveness === 'Very High' || school.competitiveness === 'High') && (
+              <Card className="bg-blue-50 border-blue-200">
+                <CardHeader>
+                  <CardTitle className="text-blue-800">
+                    <AlertCircle className="w-5 h-5 inline mr-2" />
+                    Preparation Tips for Competitive Schools
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-blue-700">
+                  <div className="space-y-3">
+                    <p className="font-medium">Since you've selected competitive schools, consider these preparation steps:</p>
+                    <ul className="list-disc list-inside space-y-1 text-sm">
+                      <li>Start preparation 12-24 months before application deadlines</li>
+                      <li>Consider SSAT preparation tutoring for private schools</li>
+                      <li>Build a portfolio showcasing your child's achievements</li>
+                      <li>Practice interview skills and assessment activities</li>
+                      <li>Attend multiple school information sessions and tours</li>
+                      <li>Maintain excellent academic performance</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Tutoring Resources */}
+            {schools.filter(s => selectedSchools.includes(s.id)).some(school => school.type === 'Private' || school.type === 'IB' || school.type === 'Independent') && (
+              <Card className="bg-purple-50 border-purple-200">
+                <CardHeader>
+                  <CardTitle className="text-purple-800">
+                    <BookOpen className="w-5 h-5 inline mr-2" />
+                    Recommended Preparation Resources
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-purple-700">
+                  <div className="space-y-3">
+                    <p className="font-medium">Local tutoring and preparation services:</p>
+                    <div className="grid gap-3">
+                      <div className="text-sm">
+                        <div className="font-medium">KEY Education</div>
+                        <div>SSAT prep, private school admissions consulting, interview coaching</div>
+                      </div>
+                      <div className="text-sm">
+                        <div className="font-medium">Aspire Math Academy (West Vancouver)</div>
+                        <div>Private school entrance coaching, SSAT preparation, mock interviews</div>
+                      </div>
+                      <div className="text-sm">
+                        <div className="font-medium">Test Innovators (Online)</div>
+                        <div>SSAT practice tests, adaptive learning platform</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button onClick={downloadPlan} size="lg">
                 <Download className="w-4 h-4 mr-2" />
-                Download Your Plan
+                Download {profile.parentName ? `${profile.parentName}'s` : 'Your'} Plan
               </Button>
               <Button variant="outline" onClick={restart} size="lg">
                 <RefreshCw className="w-4 h-4 mr-2" />
