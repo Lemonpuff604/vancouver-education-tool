@@ -140,6 +140,8 @@ export default function App() {
     // unchanged
   };
 
+  console.log("Current step is:", currentStep);
+  
   return (
   <div className="min-h-screen bg-white text-black flex items-center justify-center">
     <h1>Hello world</h1>
