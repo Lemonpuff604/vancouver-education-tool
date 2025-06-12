@@ -1,6 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
   theme: {
     extend: {},
   },
@@ -9,17 +12,18 @@ module.exports = {
     themes: [
       {
         smartmama: {
-          "primary": "#E89487",
-          "secondary": "#1F134A",
-          "accent": "#F5F5F5",
-          "neutral": "#1D1D1D",
+          "primary": "#3F72AF",
+          "secondary": "#DBE2EF",
+          "accent": "#F9F7F7",
+          "neutral": "#112D4E",
           "base-100": "#ffffff",
-          "info": "#93c5fd",
-          "success": "#4ade80",
-          "warning": "#facc15",
-          "error": "#f87171",
+          "info": "#3ABFF8",
+          "success": "#36D399",
+          "warning": "#FBBD23",
+          "error": "#F87272",
         },
       },
     ],
+    darkTheme: "smartmama", // optional: uses the same palette in dark mode
   },
-};
+}
