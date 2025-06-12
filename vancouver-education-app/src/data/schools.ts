@@ -1,6 +1,10 @@
 // Comprehensive Vancouver Education School Database
 // Updated with private school application timelines and requirements
 
+// ============================
+// VANCOUVER AREA SCHOOL TYPES
+// ============================
+
 export interface School {
   id: string;
   name: string;
@@ -8,33 +12,33 @@ export interface School {
   level: 'elementary' | 'middle' | 'high' | 'k12' | 'preschool';
   grades: string;
   location: string;
-  tuition: number | string; // Annual tuition in CAD
+  tuition: number | string;
   specialty: string[];
   website: string;
   description: string;
-  
+
   // Application Timeline
   applicationDeadline: string;
   tourDates?: string;
   openHouse?: string;
   assessmentDates?: string;
   decisionDate?: string;
-  
+
   // Intake Information
   mainIntakeGrades?: string[];
   intakeSpaces?: { [grade: string]: number };
-  
+
   // Requirements
   ssatRequired?: boolean;
   characterSkillsSnapshot?: boolean;
   parentInterview?: boolean;
   studentInterview?: boolean;
   applicationFee?: number;
-  
+
   // Preparation
   preparationTimeNeeded?: string;
   recommendedStartTime?: string;
-  
+
   // Additional Info
   features: string[];
   competitiveness: 'Low' | 'Moderate' | 'High' | 'Very High' | 'Extremely High';
@@ -931,7 +935,10 @@ export const schools: School[] = [
   }
 ];
 
-// Helper functions
+// ============================
+// HELPER FUNCTIONS
+// ============================
+
 export const getSchoolsByType = (type: School['type']) => {
   return schools.filter(school => school.type === type);
 };
@@ -945,17 +952,17 @@ export const getSchoolsByCompetitiveness = (competitiveness: School['competitive
 };
 
 export const getPrivateSchools = () => {
-  return schools.filter(school => 
-    school.type === 'Private' || 
-    school.type === 'Independent' || 
+  return schools.filter(school =>
+    school.type === 'Private' ||
+    school.type === 'Independent' ||
     school.type === 'Catholic'
   );
 };
 
 export const getPublicChoicePrograms = () => {
-  return schools.filter(school => 
-    school.type === 'Public' || 
-    school.type === 'Mini School' || 
+  return schools.filter(school =>
+    school.type === 'Public' ||
+    school.type === 'Mini School' ||
     school.type === 'IB Program'
   );
 };
@@ -968,7 +975,10 @@ export const getSchoolsWithFinancialAid = () => {
   return schools.filter(school => school.financialAid === true);
 };
 
-// Application timeline helpers
+// ============================
+// APPLICATION TIMELINE HELPERS
+// ============================
+
 export const getApplicationTimeline = () => {
   return {
     'Early Planning': {
