@@ -5,6 +5,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Optional custom styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-base-100 text-base-content;
+}
+
 @import "tw-animate-css";
 
 @layer base {
