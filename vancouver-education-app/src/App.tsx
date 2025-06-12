@@ -141,8 +141,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-base-100 text-base-content">
-      {/* UI content unchanged, update component styles */}
-    </div>
+  <div className="min-h-screen bg-white text-black flex items-center justify-center">
+    <h1>Hello world</h1>
+  </div>
   );
 }
