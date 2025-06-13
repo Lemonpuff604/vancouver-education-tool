@@ -8,17 +8,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
-import { 
-  ArrowRight, 
-  ArrowLeft, 
-  BookOpen, 
-  Users, 
-  DollarSign, 
-  MapPin, 
+import {
+  ArrowRight,
+  ArrowLeft,
+  BookOpen,
+  Users,
+  DollarSign,
+  MapPin,
   Calendar,
   Download,
   Star,
-  Home,
   RefreshCw,
   Clock,
   FileText,
@@ -27,8 +26,13 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 
-// Import comprehensive school data
-import { comprehensiveSchools as schools, School, getApplicationTimeline, getPreparationTips, getTutoringRecommendations } from './data/comprehensive-schools';
+import {
+  comprehensiveSchools as schools,
+  School,
+  getApplicationTimeline,
+  getPreparationTips,
+  getTutoringRecommendations
+} from './data/comprehensive-schools';
 
 export default function App() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -49,17 +53,17 @@ export default function App() {
   const prevStep = () => setCurrentStep(Math.max(currentStep - 1, 0));
   const restart = () => {
     setCurrentStep(0);
-    setProfile({ 
-      parentName: '', 
-      childName: '', 
-      childAge: 5, 
-      budget: 0, 
-      location: 'Vancouver', 
-      priorities: [] 
+    setProfile({
+      parentName: '',
+      childName: '',
+      childAge: 5,
+      budget: 0,
+      location: 'Vancouver',
+      priorities: []
     });
     setSelectedSchools([]);
   };
-
+  
 const priorities = [
     'Academic Excellence',
     'Arts & Creativity', 
@@ -263,26 +267,22 @@ const downloadPlan = () => {
   };
 
 return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <BookOpen className="w-8 h-8 text-blue-600" />
-              <h1 className="text-xl font-bold">Vancouver Education Tool</h1>
-            </div>
-            {currentStep > 0 && (
-              <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-600">
-                  Step {currentStep} of {steps.length - 1}
-                </span>
-                <Progress value={progressPercentage} className="w-32" />
-              </div>
-            )}
-          </div>
+    <div className="min-h-screen bg-base-100 text-neutral">
+      {/* Header */}  
+    <header className="navbar bg-base-100 shadow-md">
+      <div className="container mx-auto px-4 sm:px-8 flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <BookOpen className="text-primary w-6 h-6" />
+          <span className="font-bold text-lg">Vancouver Mini School Finder</span>
         </div>
-      </header>
+        {currentStep > 0 && (
+          <div className="flex items-center gap-2">
+          <Progress value={progressPercentage} className="w-32" />
+          <span className="text-sm text-base-content">{progressPercentage.toFixed(0)}%</span>
+        </div>
+        )}
+      </div>
+    </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Welcome Step */}
@@ -939,15 +939,9 @@ return (
           </div>
         )}
       </main>
-
-      <footer className="bg-white border-t mt-16">
-        <div className="max-w-4xl mx-auto px-4 py-8 text-center text-sm text-gray-600">
-          <p>
-            Vancouver Education Decision Tool • Data updated December 2024
-          </p>
-          <p className="mt-2">
-            Always verify current details with schools directly.
-          </p>
+      <footer className="footer items-center p-4 bg-base-200 text-base-content mt-16">
+        <div className="items-center grid-flow-col">
+          <p>Vancouver Education Tool © {new Date().getFullYear()} • Built with ❤️</p>
         </div>
       </footer>
     </div>
