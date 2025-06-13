@@ -127,14 +127,21 @@ export default function App() {
     return false;
   }
 
-  // 3) Budget
+  // 3) Budget — “Free” always shows; numeric tuitions only if ≤ budget
+  const isFree =
+    typeof school.tuition === 'string' &&
+    school.tuition.toLowerCase().includes('free');
+  const isPaidNumber = typeof school.tuition === 'number';
+
   if (profile.budget === 0) {
-    if (school.tuition !== 'Free') return false;
-  } else if (
-    typeof school.tuition === 'number' &&
-    school.tuition > profile.budget
-  ) {
-    return false;
+    // budget=0 → only free
+    if (!isFree) return false;
+  } else {
+    // budget>0 → show all frees + paid ≤ budget
+    if (isPaidNumber && school.tuition > profile.budget) {
+      return false;
+    }
+    // (everything else—including isFree—passes)
   }
 
   // 4) Priorities
