@@ -523,7 +523,6 @@ export default function App() {
         )}
 
         {/* Results */}
-        {/* Enhanced Results Step */}
 {currentStep === 3 && (
   <div className="space-y-8">
     {/* Header */}
@@ -794,11 +793,14 @@ export default function App() {
     </div>
   </div>
 )}
-      </main>
+           </main>
 
-      <footer className="bg-base-200 text-base-content text-center p-6">
-        <p>Vancouver Education Decision Tool • Data as of Dec 2024</p>
+      <footer className="bg-white border-t mt-16">
+        <div className="max-w-4xl mx-auto px-4 py-8 text-center text-sm text-gray-600">
+          <p>Vancouver Education Decision Tool • Data updated December 2024</p>
+          <p className="mt-2">Always verify current details with schools directly.</p>
+        </div>
       </footer>
-    </div>
-  );
-}
+    </div>   
+  );      
+}       
