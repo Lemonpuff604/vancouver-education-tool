@@ -166,12 +166,22 @@ const priorities = [
     
     // Filter by budget
     if (profile.budget === 0 && school.tuition !== 'Free') return false;
-    if (profile.budget > 0 && school.tuition === 'Free') return true;
-    if (profile.budget > 0 && typeof school.tuition === 'number') {
-      if (school.tuition > profile.budget) return false;
+
+    if (profile.budget > 0) {
+      let tuitionValue = 0;
+
+      if (typeof school.tuition === 'string') {
+        if (school.tuition === 'Free') {
+          tuitionValue = 0;
+        } else {
+          tuitionValue = parseInt(school.tuition.replace(/[^0-9]/g, ''), 10);
+        }
+      } else {
+        tuitionValue = school.tuition;
+      }
+
+      if (tuitionValue > profile.budget) return false;
     }
-    return true;
-  });
 
   const formatBudget = (budget) => {
     if (budget === 0) return 'Public schools only (Free)';
