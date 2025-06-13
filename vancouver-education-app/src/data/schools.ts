@@ -888,7 +888,7 @@ export const schools: School[] = [
     'Application fee: $200'
   ],
   competitiveness: 'High'
-}
+},
 
   // === RICHMOND SCHOOLS ===
   {
