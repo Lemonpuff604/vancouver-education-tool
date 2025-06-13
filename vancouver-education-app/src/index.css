@@ -6,17 +6,45 @@
 .slider-visible input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
-  height: 6px;
+  height: 8px;
   background: #e2e8f0;
-  border-radius: 3px;
+  border-radius: 4px;
   outline: none;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.slider-visible input[type="range"]:hover {
+  opacity: 1;
 }
 
 .slider-visible input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   background: #3b82f6;
   border-radius: 50%;
   cursor: pointer;
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.slider-visible input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+.slider-visible input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  background: #3b82f6;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.slider-visible input[type="range"]::-moz-range-thumb:
