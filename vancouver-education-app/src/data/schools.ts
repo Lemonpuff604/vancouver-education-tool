@@ -493,6 +493,127 @@ export const schools: School[] = [
     competitiveness: 'Very High',
     financialAid: false
   },
+
+{
+  id: 'gladstone-secondary-mini',
+  name: 'Gladstone Secondary – Mini School Enrichment Program',
+  type: 'Mini School',
+  level: 'high',
+  grades: '8–12',
+  location: 'East Vancouver',
+  tuition: 'Free',
+  specialty: ['Academic Acceleration','Leadership','Community Service'],
+  website: 'https://www.vsb.bc.ca/schools/gladstone-secondary',
+  description: 'Academic acceleration (Grades 8–10 in two years), leadership development, and community-service focus.',
+  applicationDeadline: 'December 19',
+  features: ['Accelerated curriculum','Leadership projects','Service learning'],
+  competitiveness: 'Very High'
+},
+{
+  id: 'prince-of-wales-mini',
+  name: 'Prince of Wales Secondary – Mini School',
+  type: 'Mini School',
+  level: 'high',
+  grades: '8–12',
+  location: 'Shaughnessy',
+  tuition: 'Free',
+  specialty: ['Community Focus','Academic Enrichment'],
+  website: 'https://www.vsb.bc.ca/schools/prince-of-wales-secondary',
+  description: 'Rigorous academic enrichment with strong emphasis on community and leadership.',
+  applicationDeadline: 'December 19',
+  features: ['Service opportunities','Peer mentorship','Enrichment electives'],
+  competitiveness: 'Very High'
+},
+{
+  id: 'tupper-mini-school',
+  name: 'Sir Charles Tupper Secondary – Tupper Mini School',
+  type: 'Mini School',
+  level: 'high',
+  grades: '8–12',
+  location: 'East Vancouver',
+  tuition: 'Free',
+  specialty: ['Leadership Development','Accelerated Academics'],
+  website: 'https://www.vsb.bc.ca/schools/sir-charles-tupper-secondary',
+  description: 'Academic enrichment program with leadership and critical-thinking focus.',
+  applicationDeadline: 'December 19',
+  features: ['Leadership workshops','Critical thinking','Advanced coursework'],
+  competitiveness: 'Very High'
+},
+{
+  id: 'killarney-computer-science-mini',
+  name: 'Killarney Secondary – Computer Science Mini School',
+  type: 'Mini School',
+  level: 'high',
+  grades: '8–12',
+  location: 'East Vancouver',
+  tuition: 'Free',
+  specialty: ['Programming','Cyber Security','Robotics'],
+  website: 'https://www.vsb.bc.ca/schools/killarney-secondary',
+  description: 'Focus on computer science fundamentals, cybersecurity, robotics and system administration.',
+  applicationDeadline: 'December 19',
+  features: ['Coding labs','Robotics club','Security workshops'],
+  competitiveness: 'Very High'
+},
+{
+  id: 'churchill-mini-school',
+  name: 'Sir Winston Churchill Secondary – Ideal Mini School',
+  type: 'Mini School',
+  level: 'high',
+  grades: '8–12',
+  location: 'West Vancouver',
+  tuition: 'Free',
+  specialty: ['Academic Enrichment','Creative Thinking'],
+  website: 'https://www.vsb.bc.ca/schools/sir-winston-churchill-secondary',
+  description: 'Enrichment program emphasizing creative problem-solving and advanced academics.',
+  applicationDeadline: 'December 19',
+  features: ['Innovation projects','Advanced seminars','Creative workshops'],
+  competitiveness: 'Very High'
+},
+{
+  id: 'john-oliver-tech-immersion',
+  name: "John Oliver Secondary – Tech Immersion Program",
+  type: 'Mini School',
+  level: 'high',
+  grades: '8–12',
+  location: 'South Vancouver',
+  tuition: 'Free',
+  specialty: ['Digital Skills','Technology Integration'],
+  website: 'https://www.vsb.bc.ca/schools/john-oliver-secondary',
+  description: 'Immersive tech program covering software development, digital media, and emerging technologies.',
+  applicationDeadline: 'December 19',
+  features: ['Multimedia labs','Coding courses','Digital portfolios'],
+  competitiveness: 'Very High'
+},
+{
+  id: 'vancouver-technical-flex-humanities',
+  name: 'Vancouver Technical Secondary – Flex Humanities Program',
+  type: 'Mini School',
+  level: 'high',
+  grades: '8–12',
+  location: 'East Vancouver',
+  tuition: 'Free',
+  specialty: ['Humanities','Liberal Arts'],
+  website: 'https://www.vsb.bc.ca/schools/vancouver-technical-secondary',
+  description: 'Humanities-focused enrichment with seminars in philosophy, history, and literature.',
+  applicationDeadline: 'December 19',
+  features: ['Small seminars','Debate clubs','Creative writing'],
+  competitiveness: 'Very High'
+},
+{
+  id: 'templeton-mini-school',
+  name: 'Templeton Secondary – Templeton Mini School',
+  type: 'Mini School',
+  level: 'high',
+  grades: '8–12',
+  location: 'East Vancouver',
+  tuition: 'Free',
+  specialty: ['Academic Enrichment','Critical Thinking'],
+  website: 'https://www.vsb.bc.ca/schools/templeton-secondary',
+  description: 'Rigorous academic program with emphasis on analysis, research, and critical-thinking skills.',
+  applicationDeadline: 'December 19',
+  features: ['Research projects','Philosophy seminars','Advanced studies'],
+  competitiveness: 'Very High'
+}
   
   // === SPECIALIZED & ALTERNATIVE SCHOOLS ===
   {
@@ -714,14 +835,14 @@ export const schools: School[] = [
     name: 'Westside Montessori School',
     type: 'Independent',
     level: 'preschool',
-    grades: 'Preschool-K',
+    grades: 'Preschool-Kindergarden',
     location: 'Vancouver (West)',
     tuition: 15000,
     specialty: ['Montessori Method', 'Three-Year Program', 'Child Development'],
     website: 'https://www.westsidemontessori.ca',
     description: 'Authentic Montessori preschool requiring three-year commitment including Kindergarten year.',
     
-    applicationDeadline: 'Lottery system',
+    applicationDeadline: 'On-going Year long',
     tourDates: 'January Annual Open House',
     openHouse: 'January',
     assessmentDates: '30-minute Children\'s Visit',
@@ -738,6 +859,36 @@ export const schools: School[] = [
     financialAid: false,
     uniformRequired: false
   },
+    {
+  id: 'westside-montessori-academy',
+  name: 'Westside Montessori Academy',
+  type: 'Independent',
+  level: 'elementary',
+  grades: 'K–7',
+  location: 'Vancouver',
+  tuition: 16000, // Elementary tuition for 2025–26 is $16,000  [oai_citation:0‡westsidemontessoriacademy.ca](https://www.westsidemontessoriacademy.ca/wp-content/uploads/2024/11/NEW-Elementary-Fees-Registration-and-Withdrawal-2025-2026.pdf)
+  specialty: [
+    'Montessori Method',
+    'Individualized Attention',
+    'Community Involvement',
+    'Co-Curricular Programs'
+  ],
+  website: 'https://www.westsidemontessoriacademy.ca/',
+  description:
+    'Authentic Montessori education for Kindergarten through Grade 7, emphasizing self-directed learning, individualized attention, and community involvement.',
+
+  applicationDeadline: 'December 6, 2024', // Next deadline: Dec 6, 2024  [oai_citation:1‡westsidemontessoriacademy.ca](https://www.westsidemontessoriacademy.ca/application-process/)
+
+  features: [
+    'Art, theatre & music programs',
+    'Outdoor & indoor sports',
+    'Yoga & language classes',
+    'Annual Open House in November',
+    'Parent/Child interviews',
+    'Application fee: $200'
+  ],
+  competitiveness: 'High'
+}
 
   // === RICHMOND SCHOOLS ===
   {
