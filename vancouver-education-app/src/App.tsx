@@ -35,7 +35,8 @@ import {
   RefreshCw,
   Clock,
   FileText,
-  AlertCircle
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react';
 
 import { schools, School } from './data/schools';
@@ -170,8 +171,130 @@ export default function App() {
 
   // ─── PDF Generation ─────────────────────────────────────────
   function downloadPlan() {
-    // ...your existing downloadPlan logic or jsPDF helper...
-  }
+    const downloadPlan = () => {
+  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+  const margin = 40;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let y = margin;
+
+  // — Title —
+  doc.setFont('helvetica', 'bold').setFontSize(18);
+  const title = profile.parentName
+    ? `${profile.parentName}'s Education Plan`
+    : "Your Education Plan";
+  doc.text(title + (profile.childName ? ` for ${profile.childName}` : ''), margin, y);
+  y += 30;
+
+  // — Subtitle —
+  doc.setFont('helvetica', 'normal').setFontSize(12);
+  doc.text(
+    'Your personalized school recommendations and comprehensive action plan',
+    margin,
+    y
+  );
+  y += 30;
+
+  // — Overview Cards —
+  doc.setFontSize(12).setFont('helvetica', 'bold');
+  doc.text(`${selectedSchools.length} Schools Selected`, margin, y);
+  doc.text(`Budget: ${formatBudget(profile.budget)}`, margin + 200, y);
+  doc.text(`Age ${profile.childAge}`, margin + 380, y);
+  y += 30;
+
+  // — Selected Schools List —
+  doc.setFont('helvetica', 'bold').setFontSize(14);
+  doc.text(
+    profile.childName
+      ? `${profile.childName}'s Selected Schools`
+      : "Your Selected Schools",
+    margin,
+    y
+  );
+  y += 20;
+  doc.setFont('helvetica', 'normal').setFontSize(11);
+
+  schools
+    .filter(s => selectedSchools.includes(s.id))
+    .forEach((s, i) => {
+      // Header line
+      const header = `${i + 1}. ${s.name} (${s.grades}) – ${s.location}`;
+      doc.text(header, margin, y);
+      y += 14;
+
+      // Specialty line
+      doc.setTextColor(90);
+      doc.text(s.specialty.join(', '), margin + 10, y);
+      doc.setTextColor(0);
+      y += 14;
+
+      // Tuition & Deadline
+      const line = `${typeof s.tuition === 'number'
+        ? `$${s.tuition.toLocaleString()}/yr`
+        : s.tuition
+      } • Deadline: ${s.applicationDeadline}`;
+      doc.text(line, margin + 10, y);
+      y += 20;
+
+      // Wrap description
+      const lines = doc.splitTextToSize(s.description, pageWidth - margin * 2 - 10);
+      doc.text(lines, margin + 10, y);
+      y += lines.length * 12 + 10;
+
+      // Page break if needed
+      if (y > doc.internal.pageSize.getHeight() - margin) {
+        doc.addPage();
+        y = margin;
+      }
+    });
+
+  // Utility to draw a colored box heading
+  const drawSection = (color: string, title: string, tasks: string[]) => {
+    doc.setDrawColor(color).setFillColor(color + '22').rect(margin, y, pageWidth - margin * 2, 60, 'FD');
+    doc.setTextColor(color).setFont('helvetica', 'bold').setFontSize(12);
+    doc.text(title, margin + 8, y + 16);
+    doc.setTextColor(0).setFont('helvetica', 'normal').setFontSize(10);
+    tasks.forEach((t, idx) =>
+      doc.text(`• ${t}`, margin + 12, y + 34 + idx * 12)
+    );
+    y += 70;
+  };
+
+  // — Immediate (Red) —
+  drawSection('#dc2626', 'Immediate Actions (This Week)', [
+    'Mark critical dates with early reminders',
+    'Start your school research online',
+    'Create a tracking system (spreadsheet/folders)'
+  ]);
+
+  // — Short-term (Yellow) —
+  drawSection('#f59e0b', 'Short-term Planning (1–3 Months)', [
+    'Book tours & info sessions',
+    'Prepare application materials',
+    profile.childAge >= 12
+      ? 'Register for SSAT & begin prep'
+      : 'Gather transcripts & references'
+  ]);
+
+  // — Medium-term (Blue) —
+  drawSection('#3b82f6', 'Medium-term Strategy (3–6 Months)', [
+    'Focus on academic enrichment & tutoring',
+    'Practice interviews with your child',
+    'Plan finances & scholarship research'
+  ]);
+
+  // — Long-term (Green) —
+  drawSection('#10b981', 'Long-term Success Strategy', [
+    'Apply to safety/backup schools',
+    'Join parent & school communities',
+    'Monitor policy/program changes'
+  ]);
+
+  // — Final save —
+  const filename = `${(profile.parentName || 'your')
+    .toLowerCase()
+    .replace(/\s+/g, '-')}-education-plan.pdf`;
+  doc.save(filename);
+};
 
   // ─── RENDER ─────────────────────────────────────────────────
   return (
@@ -400,135 +523,277 @@ export default function App() {
         )}
 
         {/* Results */}
-        {currentStep===3 && (
-          <div className="space-y-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-primary">Your Education Plan</h2>
-              <p className="text-neutral-content/80">
-                Personalized recommendations & next steps
-              </p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6">
-              <Card className="text-center">
-                <CardHeader>
-                  <BookOpen className="w-12 h-12 mx-auto text-primary" />
-                  <CardTitle>{selectedSchools.length} Schools</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>Selected for you</p>
-                </CardContent>
-              </Card>
-              <Card className="text-center">
-                <CardHeader>
-                  <DollarSign className="w-12 h-12 mx-auto text-success" />
-                  <CardTitle>{formatBudget(profile.budget)}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>Budget range</p>
-                </CardContent>
-              </Card>
-              <Card className="text-center">
-                <Calendar className="w-12 h-12 mx-auto text-secondary" />
-                <CardTitle>Age {profile.childAge}</CardTitle>
-                <CardContent>
-                  <p>Planning timeline</p>
-                </CardContent>
-              </Card>
-            </div>
+        {/* Enhanced Results Step */}
+{currentStep === 3 && (
+  <div className="space-y-8">
+    {/* Header */}
+    <div className="text-center">
+      <h2 className="text-3xl font-bold">
+        {profile.parentName ? `${profile.parentName}'s` : 'Your'} Education Plan
+        {profile.childName && ` for ${profile.childName}`}
+      </h2>
+      <p className="text-gray-600 mt-2">
+        Your personalized school recommendations and comprehensive action plan
+      </p>
+    </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Selected Schools</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {schools
-                  .filter(s=>selectedSchools.includes(s.id))
-                  .map((s,i)=>(
-                  <div key={s.id}>
-                    <div className="flex justify-between">
-                      <div>
-                        <h3 className="font-semibold">{s.name}</h3>
-                        <p className="text-neutral-content/80">{s.specialty.join(', ')}</p>
-                        <div className="flex items-center gap-4 text-sm mt-1 text-neutral-content/80">
-                          <MapPin /> {s.location}
-                          <DollarSign /> {s.tuition}
-                          <Calendar /> {s.applicationDeadline}
-                        </div>
-                      </div>
-                      <Badge>{s.type}</Badge>
-                    </div>
-                    {i < selectedSchools.length-1 && <hr className="my-4"/>}
+    {/* Overview Cards */}
+    <div className="grid md:grid-cols-3 gap-6">
+      <Card className="text-center">
+        <CardHeader>
+          <BookOpen className="w-12 h-12 mx-auto text-blue-500" />
+          <CardTitle>{selectedSchools.length} Schools</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-600">
+            Selected for {profile.childName || 'your child'}
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card className="text-center">
+        <CardHeader>
+          <DollarSign className="w-12 h-12 mx-auto text-green-500" />
+          <CardTitle>{formatBudget(profile.budget)}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-600">Your budget range</p>
+        </CardContent>
+      </Card>
+
+      <Card className="text-center">
+        <CardHeader>
+          <Calendar className="w-12 h-12 mx-auto text-purple-500" />
+          <CardTitle>Age {profile.childAge}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-600">
+            {profile.childAge <= 5
+              ? 'Early planning advantage'
+              : profile.childAge <= 11
+              ? 'Perfect timing for research'
+              : 'Time-sensitive applications'}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+
+    {/* Selected Schools List */}
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          {profile.childName
+            ? `${profile.childName}'s`
+            : "Your Child's"} Selected Schools
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {schools
+          .filter(s => selectedSchools.includes(s.id))
+          .map((school, index) => (
+            <div key={school.id}>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-semibold text-lg">{school.name}</h3>
+                  <p className="text-gray-600">
+                    {school.specialty.join(', ')}
+                  </p>
+                  <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                    <MapPin className="w-4 h-4" />
+                    <span>{school.location}</span>
+                    <span>
+                      {typeof school.tuition === 'number'
+                        ? `$${school.tuition.toLocaleString()}/year`
+                        : school.tuition}
+                    </span>
+                    <span>Deadline: {school.applicationDeadline}</span>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* 4-Tier Actions */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Immediate */}
-              <Card className="border-error">
-                <CardHeader>
-                  <CardTitle className="text-error"><Clock className="mr-2"/>This Week</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm">
-                  <ul className="list-disc list-inside">
-                    <li>Mark deadlines in your calendar</li>
-                    <li>Research info sessions</li>
-                    <li>Track school updates</li>
-                  </ul>
-                </CardContent>
-              </Card>
-              {/* Short-term */}
-              <Card className="border-warning">
-                <CardHeader>
-                  <CardTitle className="text-warning"><Calendar className="mr-2"/>1–3 Months</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm">
-                  <ul className="list-disc list-inside">
-                    <li>Book tours & info nights</li>
-                    <li>Prepare applications</li>
-                    {profile.childAge>=12 && <li>Register for tests (SSAT)</li>}
-                  </ul>
-                </CardContent>
-              </Card>
-              {/* Medium-term */}
-              <Card className="border-info">
-                <CardHeader>
-                  <CardTitle className="text-info"><FileText className="mr-2"/>3–6 Months</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm">
-                  <ul className="list-disc list-inside">
-                    <li>Academic enrichment & tutoring</li>
-                    <li>Interview practice</li>
-                    <li>Financial planning</li>
-                  </ul>
-                </CardContent>
-              </Card>
-              {/* Long-term */}
-              <Card className="border-success">
-                <CardHeader>
-                  <CardTitle className="text-success"><BookOpen className="mr-2"/>Long-term</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm">
-                  <ul className="list-disc list-inside">
-                    <li>Apply to backup schools</li>
-                    <li>Join community groups</li>
-                    <li>Monitor policy changes</li>
-                  </ul>
-                </CardContent>
-              </Card>
+                </div>
+                <Badge variant="outline">{school.type}</Badge>
+              </div>
+              {index < selectedSchools.length - 1 && <hr className="mt-4" />}
             </div>
+          ))}
+      </CardContent>
+    </Card>
 
-            <div className="flex justify-center space-x-4">
-              <Button onClick={downloadPlan} className="btn-primary">
-                <Download className="mr-2"/> Download Your Plan
-              </Button>
-              <Button variant="outline" onClick={restart}>
-                <RefreshCw className="mr-2"/> Start Over
-              </Button>
-            </div>
+    {/* Immediate Actions (Red) */}
+    <Card className="bg-red-50 border-red-200">
+      <CardHeader>
+        <CardTitle className="text-red-800 flex items-center">
+          <AlertCircle className="w-5 h-5 mr-2" />
+          Immediate Actions (This Week)
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="text-red-700 space-y-3">
+        <div className="flex items-start space-x-3">
+          <CheckCircle className="w-5 h-5 mt-0.5" />
+          <div>
+            <p className="font-medium">Mark Critical Dates</p>
+            <p className="text-sm">
+              Add all application deadlines to your calendar with 2-week early
+              reminders
+            </p>
+          </div>
+        </div>
+        <div className="flex items-start space-x-3">
+          <CheckCircle className="w-5 h-5 mt-0.5" />
+          <div>
+            <p className="font-medium">Start School Research</p>
+            <p className="text-sm">
+              Visit websites, download info packages, and sign up for updates
+            </p>
+          </div>
+        </div>
+        <div className="flex items-start space-x-3">
+          <CheckCircle className="w-5 h-5 mt-0.5" />
+          <div>
+            <p className="font-medium">Create Application Tracker</p>
+            <p className="text-sm">
+              Spreadsheet or folder system to track requirements & progress
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+
+    {/* Short-term Planning (Yellow) */}
+    <Card className="bg-yellow-50 border-yellow-200">
+      <CardHeader>
+        <CardTitle className="text-yellow-800 flex items-center">
+          <Clock className="w-5 h-5 mr-2" />
+          Short-term Planning (1–3 Months)
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="text-yellow-700 space-y-4">
+        <div>
+          <h4 className="font-medium mb-2">
+            School Visits & Information Sessions
+          </h4>
+          <ul className="space-y-1 text-sm ml-4">
+            <li>• Book tours at your selected schools</li>
+            <li>• Attend virtual or in-person info nights</li>
+            <li>• Prepare questions on curriculum & culture</li>
+            <li>• Take notes/images for later comparison</li>
+          </ul>
+        </div>
+        <div>
+          <h4 className="font-medium mb-2">Application Preparation</h4>
+          <ul className="space-y-1 text-sm ml-4">
+            <li>• Request transcripts & report cards</li>
+            <li>• Contact references (teachers, mentors)</li>
+            <li>• Draft essays or personal statements</li>
+            <li>• Gather birth/immunization records</li>
+          </ul>
+        </div>
+        {profile.childAge >= 12 && (
+          <div>
+            <h4 className="font-medium mb-2">Test Preparation (If Required)</h4>
+            <ul className="space-y-1 text-sm ml-4">
+              <li>• Register for SSAT & prep courses</li>
+              <li>• Schedule practice tests & review</li>
+              <li>• Plan retakes if needed</li>
+            </ul>
           </div>
         )}
+      </CardContent>
+    </Card>
+
+    {/* Medium-term Strategy (Blue) */}
+    <Card className="bg-blue-50 border-blue-200">
+      <CardHeader>
+        <CardTitle className="text-blue-800 flex items-center">
+          <FileText className="w-5 h-5 mr-2" />
+          Medium-term Strategy (3–6 Months)
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="text-blue-700 space-y-4">
+        <div>
+          <h4 className="font-medium mb-2">Academic Enhancement</h4>
+          <ul className="space-y-1 text-sm ml-4">
+            <li>• Strengthen weak subject areas</li>
+            <li>• Enroll in enrichment programs</li>
+            <li>• Maintain strong grades & teacher rapport</li>
+            <li>• Document awards & activities</li>
+          </ul>
+        </div>
+        <div>
+          <h4 className="font-medium mb-2">Interview Preparation</h4>
+          <ul className="space-y-1 text-sm ml-4">
+            <li>
+              • Practice common questions with {profile.childName || 'your child'}
+            </li>
+            <li>• Articulate interests & goals</li>
+            <li>• Prepare thoughtful school questions</li>
+            <li>• Plan interview attire</li>
+          </ul>
+        </div>
+        <div>
+          <h4 className="font-medium mb-2">Financial Planning</h4>
+          <ul className="space-y-1 text-sm ml-4">
+            <li>• Research scholarships & bursaries</li>
+            <li>• Calculate total costs (uniforms, supplies)</li>
+            <li>• Plan payment schedules</li>
+            <li>• Explore education savings plans</li>
+          </ul>
+        </div>
+      </CardContent>
+    </Card>
+
+    {/* Long-term Success (Green) */}
+    <Card className="bg-green-50 border-green-200">
+      <CardHeader>
+        <CardTitle className="text-green-800 flex items-center">
+          <Star className="w-5 h-5 mr-2" />
+          Long-term Success Strategy
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="text-green-700 space-y-4">
+        <div>
+          <h4 className="font-medium mb-2">Backup Plans</h4>
+          <ul className="space-y-1 text-sm ml-4">
+            <li>• Apply to safety schools</li>
+            <li>• Research waitlist procedures</li>
+            <li>• Plan gap-year or alternatives</li>
+            <li>• Stagger entry points if needed</li>
+          </ul>
+        </div>
+        <div>
+          <h4 className="font-medium mb-2">Ongoing Monitoring</h4>
+          <ul className="space-y-1 text-sm ml-4">
+            <li>• Track policy & program changes</li>
+            <li>• Maintain admissions contacts</li>
+            <li>
+              • Nurture {profile.childName || 'your child'}’s interests & talents
+            </li>
+            <li>• Plan for transitions</li>
+          </ul>
+        </div>
+        <div>
+          <h4 className="font-medium mb-2">Community Building</h4>
+          <ul className="space-y-1 text-sm ml-4">
+            <li>• Connect with other families</li>
+            <li>• Join parent groups early</li>
+            <li>• Volunteer at prospective schools</li>
+            <li>• Build long-term support networks</li>
+          </ul>
+        </div>
+      </CardContent>
+    </Card>
+
+    {/* Download & Restart */}
+    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      <Button onClick={downloadPlan} size="lg">
+        <Download className="w-4 h-4 mr-2" />
+        Download {profile.parentName ? `${profile.parentName}'s` : 'Your'} Plan
+      </Button>
+      <Button variant="outline" onClick={restart} size="lg">
+        <RefreshCw className="w-4 h-4 mr-2" />
+        Start Over
+      </Button>
+    </div>
+  </div>
+)}
       </main>
 
       <footer className="bg-base-200 text-base-content text-center p-6">
