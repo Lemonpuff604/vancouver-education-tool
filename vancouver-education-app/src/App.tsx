@@ -963,7 +963,7 @@ export default function App() {
 
             {/* Download & Restart */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button onClick={generatePDF} size="lg">
+              <Button onClick={generatePDF}>
                 <Download className="w-4 h-4 mr-2" />
                 Download PDF Plan
               </Button>
