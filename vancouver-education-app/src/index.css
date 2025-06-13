@@ -47,4 +47,72 @@
   transition: all 0.2s ease;
 }
 
-.slider-visible input[type="range"]::-moz-range-thumb:
+.slider-visible input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Track styling for WebKit browsers */
+.slider-visible input[type="range"]::-webkit-slider-runnable-track {
+  background: #e2e8f0;
+  height: 8px;
+  border-radius: 4px;
+  border: none;
+}
+
+/* Track styling for Firefox */
+.slider-visible input[type="range"]::-moz-range-track {
+  background: #e2e8f0;
+  height: 8px;
+  border-radius: 4px;
+  border: none;
+}
+
+/* Better focus states */
+.slider-visible input[type="range"]:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* School card hover effects */
+.school-card {
+  transition: all 0.2s ease-in-out;
+}
+
+.school-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Disabled state styling */
+.school-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.school-card.disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Text truncation utilities */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
