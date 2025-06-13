@@ -170,7 +170,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-base-100">
       {/* Header */}
-      <header className="bg-neutral text-neutral-content">
+      <header className="bg-base-200 text-base-content">
         <div className="max-w-6xl mx-auto p-4 flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <BookOpen className="w-8 h-8 text-primary" />
@@ -253,11 +253,13 @@ export default function App() {
                       value={profile.location}
                       onValueChange={loc=>setProfile({...profile, location:loc})}
                     >
-                      <SelectTrigger><SelectValue/></SelectTrigger>
-                      <SelectContent>
-                        {['Vancouver','Burnaby','Richmond','Flexible'].map(loc=>(
+                      <SelectTrigger className="bg-base-100 text-base-content">
+                        <SelectValue placeholder="Flexible" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-base-100 text-base-content">
+                        {['Vancouver','Burnaby','Richmond','Flexible'].map(loc => (
                           <SelectItem value={loc} key={loc}>{loc}</SelectItem>
-                        ))}
+                         ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -522,7 +524,7 @@ export default function App() {
         )}
       </main>
 
-      <footer className="bg-neutral text-neutral-content text-center p-6">
+      <footer className="bg-base-200 text-base-content text-center p-6">
         <p>Vancouver Education Decision Tool • Data as of Dec 2024</p>
       </footer>
     </div>
