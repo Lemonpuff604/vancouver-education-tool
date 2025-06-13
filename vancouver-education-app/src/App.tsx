@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
+import jsPDF from 'jspdf';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -35,6 +36,7 @@ import {
   FileText,
   AlertCircle,
   CheckCircle,
+  Info,
 } from 'lucide-react';
 
 import { schools, School } from './data/schools';
@@ -44,7 +46,6 @@ export default function App() {
   const [step, setStep] = useState(0);
   const steps = ['Welcome', 'Profile', 'Discovery', 'Results'];
   const progress = (step / (steps.length - 1)) * 100;
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Profile state
   const [profile, setProfile] = useState({
@@ -88,23 +89,79 @@ export default function App() {
     setSelected([]);
   };
 
-  // Filter logic
-  const levelsForAge = (age: number) => {
-    if (age <= 6) return ['preschool', 'elementary', 'k12'];
-    if (age <= 11) return ['elementary', 'k12'];
-    if (age <= 14) return ['middle', 'high', 'k12'];
-    return ['high', 'k12'];
+  // Improved filter logic
+  const getSchoolsForAge = (age: number) => {
+    return schools.filter(school => {
+      // Check if school serves this age based on grades
+      const grades = school.grades.toLowerCase();
+      
+      // Preschool (ages 3-5)
+      if (age <= 5) {
+        return school.level === 'preschool' || 
+               grades.includes('pk') || 
+               grades.includes('jk') || 
+               grades.includes('preschool') ||
+               (school.level === 'k12' && (grades.includes('jk') || grades.includes('pk')));
+      }
+      
+      // Elementary (ages 5-11: K-7)
+      if (age >= 5 && age <= 11) {
+        return school.level === 'elementary' || 
+               school.level === 'k12' ||
+               grades.includes('k') || 
+               grades.includes('1') || 
+               grades.includes('2') || 
+               grades.includes('3') || 
+               grades.includes('4') || 
+               grades.includes('5') || 
+               grades.includes('6') || 
+               grades.includes('7');
+      }
+      
+      // Middle School (ages 11-14: Grades 6-9)
+      if (age >= 11 && age <= 14) {
+        return school.level === 'middle' || 
+               school.level === 'high' || 
+               school.level === 'k12' ||
+               grades.includes('6') || 
+               grades.includes('7') || 
+               grades.includes('8') || 
+               grades.includes('9');
+      }
+      
+      // High School (ages 14-18: Grades 9-12)
+      if (age >= 14) {
+        return school.level === 'high' || 
+               school.level === 'k12' ||
+               grades.includes('8') || 
+               grades.includes('9') || 
+               grades.includes('10') || 
+               grades.includes('11') || 
+               grades.includes('12');
+      }
+      
+      return false;
+    });
   };
-  const filteredSchools = schools.filter((sch) => {
-    if (!levelsForAge(profile.childAge).includes(sch.level)) return false;
-    if (profile.location !== 'Flexible' && sch.location !== profile.location)
+
+  const filteredSchools = getSchoolsForAge(profile.childAge).filter((school) => {
+    // Location filter
+    if (profile.location !== 'Flexible' && school.location !== profile.location) {
+      // More flexible location matching
+      const schoolLocation = school.location.toLowerCase();
+      const selectedLocation = profile.location.toLowerCase();
+      
+      // Check if school location contains the selected location or vice versa
+      if (!schoolLocation.includes(selectedLocation) && !selectedLocation.includes(schoolLocation)) {
+        return false;
+      }
+    }
+    
+    // Budget filter - only apply if budget > 0 and tuition is a number
+    if (profile.budget > 0 && typeof school.tuition === 'number' && school.tuition > profile.budget) {
       return false;
-    if (
-      typeof sch.tuition === 'number' &&
-      profile.budget > 0 &&
-      sch.tuition > profile.budget
-    )
-      return false;
+    }
+    
     return true;
   });
 
@@ -113,125 +170,120 @@ export default function App() {
   const formatBudget = (b: number) =>
     b === 0 ? 'Public only (Free)' : `Up to $${b.toLocaleString()}/yr`;
 
-  // Canvas-based PDF generation
-  const downloadPlan = async () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  // PDF generation using jsPDF
+  const downloadPlan = () => {
+    const doc = new jsPDF();
+    const margin = 20;
+    let y = margin;
+    const lineHeight = 6;
+    const pageHeight = doc.internal.pageSize.height;
 
-    // Set canvas size (A4 proportions)
-    canvas.width = 800;
-    canvas.height = 1120;
-    
-    // Clear canvas
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    let y = 40;
-    const margin = 40;
-    const lineHeight = 20;
-    
-    // Helper function to draw text
-    const drawText = (text: string, x: number, size: number = 12, color: string = '#000000', weight: string = 'normal') => {
-      ctx.fillStyle = color;
-      ctx.font = `${weight} ${size}px Arial, sans-serif`;
-      ctx.fillText(text, x, y);
-      y += lineHeight;
+    // Helper to add new page if needed
+    const checkPageBreak = (neededSpace: number) => {
+      if (y + neededSpace > pageHeight - margin) {
+        doc.addPage();
+        y = margin;
+      }
     };
-    
-    // Helper function to draw section
-    const drawSection = (title: string, items: string[], bgColor: string = '#f8f9fa') => {
-      // Background
-      ctx.fillStyle = bgColor;
-      ctx.fillRect(margin, y - 15, canvas.width - (margin * 2), items.length * lineHeight + 30);
+
+    // Helper to add text with automatic page breaks
+    const addText = (text: string, x: number, fontSize: number = 12, style: string = 'normal') => {
+      checkPageBreak(lineHeight + 5);
+      doc.setFont('helvetica', style);
+      doc.setFontSize(fontSize);
+      doc.text(text, x, y);
+      y += lineHeight + 2;
+    };
+
+    // Helper to add a section
+    const addSection = (title: string, items: string[]) => {
+      checkPageBreak(30 + items.length * lineHeight);
       
-      // Title
-      drawText(title, margin + 10, 14, '#333333', 'bold');
+      // Section title
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text(title, margin, y);
+      y += lineHeight + 3;
       
       // Items
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
       items.forEach(item => {
-        drawText(`• ${item}`, margin + 20, 11, '#555555');
+        checkPageBreak(lineHeight + 2);
+        doc.text(`• ${item}`, margin + 5, y);
+        y += lineHeight;
       });
-      
-      y += 20; // Extra spacing after section
+      y += 5;
     };
 
     // Title
     const title = profile.parentName
       ? `${profile.parentName}'s Education Plan`
       : 'Your Education Plan';
-    drawText(title + (profile.childName ? ` for ${profile.childName}` : ''), margin, 20, '#1a202c', 'bold');
+    addText(title + (profile.childName ? ` for ${profile.childName}` : ''), margin, 18, 'bold');
     
-    drawText('Your personalized school recommendations and comprehensive action plan', margin, 12, '#666666');
-    y += 20;
+    addText('Your personalized school recommendations and comprehensive action plan', margin, 12);
+    y += 5;
 
     // Overview
-    drawText(`${selected.length} Schools Selected | Budget: ${formatBudget(profile.budget)} | Age: ${profile.childAge}`, margin, 12, '#333333', 'bold');
-    y += 20;
+    addText(`${selected.length} Schools Selected | Budget: ${formatBudget(profile.budget)} | Age: ${profile.childAge}`, margin, 12, 'bold');
+    y += 5;
 
     // Selected Schools
-    drawText('Selected Schools:', margin, 16, '#1a202c', 'bold');
+    addText('Your Selected Schools:', margin, 16, 'bold');
     selectedSchools.forEach((school, i) => {
-      drawText(`${i + 1}. ${school.name} (${school.grades}) – ${school.location}`, margin + 10, 12);
-      drawText(`   Tuition: ${typeof school.tuition === 'number' ? `$${school.tuition.toLocaleString()}` : school.tuition}`, margin + 10, 10, '#666666');
-      drawText(`   Deadline: ${school.applicationDeadline}`, margin + 10, 10, '#666666');
+      checkPageBreak(25);
+      addText(`${i + 1}. ${school.name} (${school.grades}) – ${school.location}`, margin + 5, 12);
+      addText(`   Tuition: ${typeof school.tuition === 'number' ? `$${school.tuition.toLocaleString()}` : school.tuition}`, margin + 10, 10);
+      addText(`   Deadline: ${school.applicationDeadline}`, margin + 10, 10);
+      y += 3;
     });
-    y += 20;
 
     // Action Plan Sections
-    drawSection('Immediate Actions (This Week)', [
+    addSection('Immediate Actions (This Week)', [
       'Mark all application deadlines in your calendar with reminders',
       'Start researching each selected school thoroughly',
       'Create a spreadsheet to track application requirements',
       'Research info sessions and book school tours'
-    ], '#fee2e2');
+    ]);
 
-    drawSection('Short-term Planning (1-3 Months)', [
+    addSection('Short-term Planning (1-3 Months)', [
       'Book tours at your selected schools (many require advance booking)',
       'Attend virtual or in-person information nights',
       'Request transcripts and report cards from current school',
       'Identify and contact potential references',
       ...(profile.childAge >= 12 ? ['Register for SSAT if applying to competitive private schools'] : ['Gather documentation (birth certificates, immunization records)'])
-    ], '#fef3c7');
+    ]);
 
-    drawSection('Medium-term Strategy (3-6 Months)', [
+    addSection('Medium-term Strategy (3-6 Months)', [
       'Focus on strengthening weak subject areas',
       'Practice interview questions and help articulate interests',
       'Research scholarship and bursary opportunities',
       'Calculate total costs including uniforms and activities',
       'Document achievements, awards, and extracurricular activities'
-    ], '#dbeafe');
+    ]);
 
-    drawSection('Long-term Success Strategy', [
+    addSection('Long-term Success Strategy', [
       'Apply to safety schools that you would be happy with',
       'Stay updated on school policy changes and new programs',
       'Connect with other families going through the process',
       'Build relationships that will support your family\'s journey',
       'Plan for transitions and adjustment periods'
-    ], '#dcfce7');
+    ]);
 
-    // Convert to blob and download
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${(profile.parentName || 'education').toLowerCase().replace(/\s+/g, '-')}-plan.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-    });
+    // Add footer
+    checkPageBreak(20);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text('Vancouver Education Decision Tool • Always verify details with schools directly', margin, y);
+
+    // Download
+    const filename = `${(profile.parentName || 'education').toLowerCase().replace(/\s+/g, '-')}-plan.pdf`;
+    doc.save(filename);
   };
 
   return (
     <div className="min-h-screen bg-base-100 text-base-content">
-      {/* Hidden canvas for PDF generation */}
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
-      
       <header className="bg-base-200 p-4 shadow">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <BookOpen className="h-8 w-8 text-primary" />
@@ -266,44 +318,72 @@ export default function App() {
 
         {/* Step 0: Welcome */}
         {step === 0 && (
-          <Card className="max-w-2xl mx-auto">
-            <CardHeader className="text-center">
-              <CardTitle className="text-3xl mb-4">
-                Welcome to the Vancouver Education Tool
-              </CardTitle>
-              <CardDescription className="text-lg">
-                Find the perfect school for your child with our personalized recommendations
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div className="flex flex-col items-center">
-                  <Users className="h-12 w-12 text-primary mb-2" />
-                  <h3 className="font-semibold">Personalized</h3>
-                  <p className="text-sm text-gray-600">
-                    Tailored to your child's age and needs
+          <div className="space-y-6">
+            <Card className="max-w-2xl mx-auto">
+              <CardHeader className="text-center">
+                <CardTitle className="text-3xl mb-4">
+                  Welcome to the Vancouver Education Tool
+                </CardTitle>
+                <CardDescription className="text-lg">
+                  Find the perfect school for your child with our personalized recommendations
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                  <div className="flex flex-col items-center">
+                    <Users className="h-12 w-12 text-primary mb-2" />
+                    <h3 className="font-semibold">Personalized</h3>
+                    <p className="text-sm text-gray-600">
+                      Tailored to your child's age and needs
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <MapPin className="h-12 w-12 text-primary mb-2" />
+                    <h3 className="font-semibold">Location-Based</h3>
+                    <p className="text-sm text-gray-600">
+                      Schools in Vancouver and surrounding areas
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <FileText className="h-12 w-12 text-primary mb-2" />
+                    <h3 className="font-semibold">Action Plan</h3>
+                    <p className="text-sm text-gray-600">
+                      Get a comprehensive education plan
+                    </p>
+                  </div>
+                </div>
+                <Button onClick={nextStep} className="w-full max-w-md">
+                  Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Beta Disclaimer */}
+            <Card className="max-w-2xl mx-auto bg-blue-50 border-blue-200">
+              <CardHeader>
+                <CardTitle className="text-blue-800 flex items-center text-lg">
+                  <Info className="w-5 h-5 mr-2" />
+                  Beta Version Notice
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-blue-700">
+                <div className="space-y-3 text-sm">
+                  <p className="font-medium">
+                    This tool is currently in beta and may not be comprehensive.
+                  </p>
+                  <p>
+                    Our current focus includes <strong>independent schools, private schools, mini schools, and programs similar to mini schools</strong> in the Vancouver area.
+                  </p>
+                  <p>
+                    While we strive for accuracy, this tool should be used as a starting point for your research. Always verify current details, application requirements, and deadlines directly with schools.
+                  </p>
+                  <p className="text-xs mt-4 border-t border-blue-300 pt-3">
+                    We're continuously working to expand our database and improve the tool's comprehensiveness.
                   </p>
                 </div>
-                <div className="flex flex-col items-center">
-                  <MapPin className="h-12 w-12 text-primary mb-2" />
-                  <h3 className="font-semibold">Location-Based</h3>
-                  <p className="text-sm text-gray-600">
-                    Schools in Vancouver and surrounding areas
-                  </p>
-                </div>
-                <div className="flex flex-col items-center">
-                  <FileText className="h-12 w-12 text-primary mb-2" />
-                  <h3 className="font-semibold">Action Plan</h3>
-                  <p className="text-sm text-gray-600">
-                    Get a comprehensive education plan
-                  </p>
-                </div>
-              </div>
-              <Button onClick={nextStep} className="w-full max-w-md">
-                Get Started <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {/* Step 1: Profile */}
@@ -347,6 +427,10 @@ export default function App() {
                   step={1}
                   className="mt-2"
                 />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>3 years</span>
+                  <span>18 years</span>
+                </div>
               </div>
 
               <div>
@@ -365,6 +449,8 @@ export default function App() {
                     <SelectItem value="Surrey">Surrey</SelectItem>
                     <SelectItem value="North Vancouver">North Vancouver</SelectItem>
                     <SelectItem value="West Vancouver">West Vancouver</SelectItem>
+                    <SelectItem value="Maple Ridge">Maple Ridge</SelectItem>
+                    <SelectItem value="New Westminster">New Westminster</SelectItem>
                     <SelectItem value="Flexible">Flexible</SelectItem>
                   </SelectContent>
                 </Select>
@@ -380,6 +466,43 @@ export default function App() {
                   step={1000}
                   className="mt-2"
                 />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>Free</span>
+                  <span>$50,000/yr</span>
+                </div>
+              </div>
+
+              {/* Priorities section moved here */}
+              <div>
+                <Label className="text-base font-medium">What matters most to you?</Label>
+                <p className="text-sm text-gray-600 mb-3">Select your top priorities (optional)</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {[
+                    'Academic Excellence',
+                    'Arts Programs',
+                    'Sports Programs',
+                    'Small Class Sizes',
+                    'Technology Integration',
+                    'Language Programs',
+                    'Special Needs Support',
+                    'International Baccalaureate',
+                    'Religious Education',
+                    'Character Development',
+                    'Innovation',
+                    'Outdoor Education',
+                  ].map((priority) => (
+                    <div key={priority} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={priority}
+                        checked={profile.priorities.includes(priority)}
+                        onCheckedChange={() => togglePriority(priority)}
+                      />
+                      <Label htmlFor={priority} className="text-sm">
+                        {priority}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="flex justify-between">
@@ -394,44 +517,9 @@ export default function App() {
           </Card>
         )}
 
-        {/* Step 2: Discovery */}
+        {/* Step 2: Discovery - simplified to just school selection */}
         {step === 2 && (
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>What matters most to you?</CardTitle>
-                <CardDescription>
-                  Select your top priorities (optional)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {[
-                    'Academic Excellence',
-                    'Arts Programs',
-                    'Sports Programs',
-                    'Small Class Sizes',
-                    'Technology Integration',
-                    'Language Programs',
-                    'Special Needs Support',
-                    'International Baccalaureate',
-                    'Religious Education',
-                  ].map((priority) => (
-                    <div key={priority} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={priority}
-                        checked={profile.priorities.includes(priority)}
-                        onCheckedChange={() => togglePriority(priority)}
-                      />
-                      <Label htmlFor={priority} className="text-sm">
-                        {priority}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle>Schools matching your criteria</CardTitle>
@@ -440,46 +528,97 @@ export default function App() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4">
-                  {filteredSchools.map((school) => (
-                    <div
-                      key={school.id}
-                      className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                        selected.includes(school.id)
-                          ? 'border-primary bg-primary/5'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => toggleSchool(school.id)}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-lg">{school.name}</h3>
-                          <p className="text-gray-600">{school.grades}</p>
-                          <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                            <span className="flex items-center">
-                              <MapPin className="h-4 w-4 mr-1" />
-                              {school.location}
-                            </span>
-                            <span className="flex items-center">
-                              <DollarSign className="h-4 w-4 mr-1" />
-                              {typeof school.tuition === 'number'
-                                ? `$${school.tuition.toLocaleString()}`
-                                : school.tuition}
-                            </span>
-                            <span className="flex items-center">
-                              <Calendar className="h-4 w-4 mr-1" />
-                              {school.applicationDeadline}
-                            </span>
+                {filteredSchools.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600 mb-4">No schools match your current criteria.</p>
+                    <p className="text-sm text-gray-500">
+                      Try adjusting your budget, location, or age range to see more options.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {filteredSchools.map((school) => (
+                      <div
+                        key={school.id}
+                        className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                          selected.includes(school.id)
+                            ? 'border-primary bg-primary/5'
+                            : 'border-gray-200 hover:border-gray-300'
+                        } ${selected.length >= 5 && !selected.includes(school.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onClick={() => {
+                          if (selected.length < 5 || selected.includes(school.id)) {
+                            toggleSchool(school.id);
+                          }
+                        }}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="font-semibold text-lg">{school.name}</h3>
+                              <Badge variant="outline" className="text-xs">
+                                {school.type}
+                              </Badge>
+                              <Badge 
+                                variant="outline" 
+                                className={`text-xs ${
+                                  school.competitiveness === 'Extremely High' ? 'border-red-500 text-red-700' :
+                                  school.competitiveness === 'Very High' ? 'border-orange-500 text-orange-700' :
+                                  school.competitiveness === 'High' ? 'border-yellow-500 text-yellow-700' :
+                                  'border-green-500 text-green-700'
+                                }`}
+                              >
+                                {school.competitiveness}
+                              </Badge>
+                            </div>
+                            <p className="text-gray-600 mb-2">{school.grades}</p>
+                            <p className="text-sm text-gray-700 mb-3 line-clamp-2">{school.description}</p>
+                            <div className="flex items-center gap-4 text-sm text-gray-500">
+                              <span className="flex items-center">
+                                <MapPin className="h-4 w-4 mr-1" />
+                                {school.location}
+                              </span>
+                              <span className="flex items-center">
+                                <DollarSign className="h-4 w-4 mr-1" />
+                                {typeof school.tuition === 'number'
+                                  ? `$${school.tuition.toLocaleString()}`
+                                  : school.tuition}
+                              </span>
+                              <span className="flex items-center">
+                                <Calendar className="h-4 w-4 mr-1" />
+                                {school.applicationDeadline}
+                              </span>
+                            </div>
+                            {school.specialty && school.specialty.length > 0 && (
+                              <div className="mt-2">
+                                <div className="flex flex-wrap gap-1">
+                                  {school.specialty.slice(0, 3).map((spec, index) => (
+                                    <Badge key={index} variant="secondary" className="text-xs">
+                                      {spec}
+                                    </Badge>
+                                  ))}
+                                  {school.specialty.length > 3 && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      +{school.specialty.length - 3} more
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
+                          <Checkbox
+                            checked={selected.includes(school.id)}
+                            disabled={selected.length >= 5 && !selected.includes(school.id)}
+                            onChange={() => {
+                              if (selected.length < 5 || selected.includes(school.id)) {
+                                toggleSchool(school.id);
+                              }
+                            }}
+                          />
                         </div>
-                        <Checkbox
-                          checked={selected.includes(school.id)}
-                          onChange={() => toggleSchool(school.id)}
-                        />
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -548,10 +687,25 @@ export default function App() {
                 <div className="space-y-4">
                   {selectedSchools.map((school, index) => (
                     <div key={school.id} className="border-l-4 border-primary pl-4">
-                      <h3 className="font-semibold text-lg">
-                        {index + 1}. {school.name}
-                      </h3>
-                      <p className="text-gray-600">{school.grades}</p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold text-lg">
+                          {index + 1}. {school.name}
+                        </h3>
+                        <Badge variant="outline">{school.type}</Badge>
+                        <Badge 
+                          variant="outline" 
+                          className={`text-xs ${
+                            school.competitiveness === 'Extremely High' ? 'border-red-500 text-red-700' :
+                            school.competitiveness === 'Very High' ? 'border-orange-500 text-orange-700' :
+                            school.competitiveness === 'High' ? 'border-yellow-500 text-yellow-700' :
+                            'border-green-500 text-green-700'
+                          }`}
+                        >
+                          {school.competitiveness}
+                        </Badge>
+                      </div>
+                      <p className="text-gray-600 mb-2">{school.grades}</p>
+                      <p className="text-sm text-gray-700 mb-3">{school.description}</p>
                       <div className="flex items-center gap-4 mt-2 text-sm">
                         <span className="flex items-center">
                           <MapPin className="h-4 w-4 mr-1" />
@@ -568,6 +722,18 @@ export default function App() {
                           Deadline: {school.applicationDeadline}
                         </span>
                       </div>
+                      {school.specialty && school.specialty.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-sm font-medium text-gray-700 mb-1">Specialties:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {school.specialty.map((spec, i) => (
+                              <Badge key={i} variant="secondary" className="text-xs">
+                                {spec}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -597,7 +763,7 @@ export default function App() {
             )}
 
             {/* Application Preparation Tips */}
-            {selectedSchools.some(school => school.competitiveness === 'Very High' || school.competitiveness === 'High') && (
+            {selectedSchools.some(school => school.competitiveness === 'Very High' || school.competitiveness === 'Extremely High') && (
               <Card className="bg-blue-50 border-blue-200">
                 <CardHeader>
                   <CardTitle className="text-blue-800">
@@ -622,7 +788,7 @@ export default function App() {
             )}
 
             {/* Tutoring Resources */}
-            {selectedSchools.some(school => school.type === 'Private' || school.type === 'IB' || school.type === 'Independent') && (
+            {selectedSchools.some(school => school.type === 'Private' || school.type === 'IB Program' || school.type === 'Independent') && (
               <Card className="bg-purple-50 border-purple-200">
                 <CardHeader>
                   <CardTitle className="text-purple-800">
@@ -639,12 +805,16 @@ export default function App() {
                         <div>SSAT prep, private school admissions consulting, interview coaching</div>
                       </div>
                       <div className="text-sm">
-                        <div className="font-medium">Aspire Math Academy (West Vancouver)</div>
-                        <div>Private school entrance coaching, SSAT preparation, mock interviews</div>
+                        <div className="font-medium">Prep Academy Tutors</div>
+                        <div>In-home and online tutoring, certified teachers, all grades</div>
                       </div>
                       <div className="text-sm">
-                        <div className="font-medium">Test Innovators (Online)</div>
-                        <div>SSAT practice tests, adaptive learning platform</div>
+                        <div className="font-medium">StudyPug Learning</div>
+                        <div>Online platform founded in Vancouver, math and science focus</div>
+                      </div>
+                      <div className="text-sm">
+                        <div className="font-medium">TUEX Education</div>
+                        <div>Math, Science, English tutoring, background-checked tutors</div>
                       </div>
                     </div>
                   </div>
@@ -652,7 +822,7 @@ export default function App() {
               </Card>
             )}
 
-            {/* Immediate Actions */}
+            {/* Action Plan Cards */}
             <Card className="bg-red-50 border-red-200">
               <CardHeader>
                 <CardTitle className="text-red-800 flex items-center">
@@ -670,7 +840,6 @@ export default function App() {
               </CardContent>
             </Card>
 
-            {/* Short-term Planning */}
             <Card className="bg-yellow-50 border-yellow-200">
               <CardHeader>
                 <CardTitle className="text-yellow-800 flex items-center">
@@ -699,11 +868,11 @@ export default function App() {
                   </ul>
                 </div>
 
-                {profile.childAge >= 12 && (
+                {profile.childAge >= 12 && selectedSchools.some(s => s.ssatRequired) && (
                   <div>
-                    <h4 className="font-medium mb-2">Test Preparation (If Required)</h4>
+                    <h4 className="font-medium mb-2">Test Preparation (Required for Selected Schools)</h4>
                     <ul className="space-y-1 text-sm ml-4">
-                      <li>• Register for SSAT if applying to competitive private schools</li>
+                      <li>• Register for SSAT - required for some of your selected schools</li>
                       <li>• Consider test prep courses or tutoring (KEY Education, Prep Academy)</li>
                       <li>• Schedule practice tests and review sessions</li>
                       <li>• Plan test dates allowing time for retakes if needed</li>
@@ -713,7 +882,6 @@ export default function App() {
               </CardContent>
             </Card>
 
-            {/* Medium-term Strategy */}
             <Card className="bg-blue-50 border-blue-200">
               <CardHeader>
                 <CardTitle className="text-blue-800 flex items-center">
@@ -754,7 +922,6 @@ export default function App() {
               </CardContent>
             </Card>
 
-            {/* Long-term Considerations */}
             <Card className="bg-green-50 border-green-200">
               <CardHeader>
                 <CardTitle className="text-green-800 flex items-center">
