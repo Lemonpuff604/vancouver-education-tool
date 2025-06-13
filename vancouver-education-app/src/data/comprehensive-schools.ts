@@ -2,37 +2,50 @@
 // Updated with Private Schools, IB Schools, and Independent Schools
 // Includes application deadlines, preparation timelines, and detailed requirements
 
+// ============================
+// VANCOUVER AREA SCHOOL TYPES
+// ============================
+
 export interface School {
   id: string;
   name: string;
-  type: 'Public' | 'Private' | 'Independent' | 'IB' | 'Religious' | 'Montessori' | 'Alternative';
-  level: 'preschool' | 'elementary' | 'middle' | 'high' | 'k12';
+  type: 'Private' | 'Public' | 'Mini School' | 'IB Program' | 'Independent' | 'Charter' | 'Catholic';
+  level: 'elementary' | 'middle' | 'high' | 'k12' | 'preschool';
   grades: string;
   location: string;
-  tuition: number | 'Free' | string;
-  applicationDeadline: string;
-  tourDates: string;
-  preparationStart: string;
+  tuition: number | string;
   specialty: string[];
-  features: string[];
+  website: string;
   description: string;
-  competitiveness: 'Low' | 'Moderate' | 'High' | 'Very High';
-  acceptanceRate?: string;
-  averageClassSize?: number;
-  studentToTeacherRatio?: string;
-  uniformRequired?: boolean;
+
+  // Application Timeline
+  applicationDeadline: string;
+  tourDates?: string;
+  openHouse?: string;
+  assessmentDates?: string;
+  decisionDate?: string;
+
+  // Intake Information
+  mainIntakeGrades?: string[];
+  intakeSpaces?: { [grade: string]: number };
+
+  // Requirements
+  ssatRequired?: boolean;
+  characterSkillsSnapshot?: boolean;
+  parentInterview?: boolean;
+  studentInterview?: boolean;
+  applicationFee?: number;
+
+  // Preparation
+  preparationTimeNeeded?: string;
+  recommendedStartTime?: string;
+
+  // Additional Info
+  features: string[];
+  competitiveness: 'Low' | 'Moderate' | 'High' | 'Very High' | 'Extremely High';
+  financialAid?: boolean;
   boardingAvailable?: boolean;
-  languagePrograms?: string[];
-  entranceRequirements?: string[];
-  preparationTips?: string[];
-  keyDates?: {
-    applicationOpen: string;
-    applicationDeadline: string;
-    assessmentDates: string;
-    interviewDates: string;
-    decisionDate: string;
-    tourDates: string;
-  };
+  uniformRequired?: boolean;
 }
 
 export const comprehensiveSchools: School[] = [
@@ -469,65 +482,98 @@ export const comprehensiveSchools: School[] = [
   }
 ];
 
-// Helper functions for application timeline and preparation
-export const getApplicationTimeline = (schoolType: string) => {
-  const timelines = {
-    'IB': {
-      '24-18 months before': 'Research schools, attend information sessions',
-      '18-12 months before': 'Begin application process, book tours',
-      '12-6 months before': 'Complete applications, prepare for assessments',
-      '6-3 months before': 'Interviews, assessments, SSAT if required',
-      '3-1 months before': 'Decision notifications, enrollment deposits',
-      'Summer before': 'Orientation, uniform fittings, final preparations'
-    },
-    'Private': {
-      '18-12 months before': 'Research schools, attend open houses',
-      '12-8 months before': 'Complete applications, gather documents',
-      '8-4 months before': 'Assessments, interviews, testing',
-      '4-2 months before': 'Decision notifications, enrollment',
-      'Summer before': 'Orientation and preparation'
-    },
-    'Public': {
-      '12-6 months before': 'Research choice programs',
-      '6-4 months before': 'Submit applications by VSB deadline',
-      '4-2 months before': 'Lottery results, placement notifications',
-      'Summer before': 'School registration and preparation'
-    }
-  };
-  return timelines[schoolType] || timelines['Private'];
+// ============================
+// HELPER FUNCTIONS
+// ============================
+
+export const getSchoolsByType = (type: School['type']) => {
+  return schools.filter(school => school.type === type);
 };
 
-export const getPreparationTips = (competitiveness: string) => {
-  const tips = {
-    'Very High': [
-      'Start preparation 2+ years early',
-      'Consider SSAT prep tutoring',
-      'Build strong academic portfolio',
-      'Develop leadership experiences',
-      'Practice interview skills extensively'
-    ],
-    'High': [
-      'Start preparation 1-2 years early',
-      'Maintain excellent grades',
-      'Develop well-rounded interests',
-      'Practice assessment activities',
-      'Show genuine interest in school'
-    ],
-    'Moderate': [
-      'Start preparation 6-12 months early',
-      'Show alignment with school values',
-      'Prepare for assessment day',
-      'Demonstrate child readiness',
-      'Visit school multiple times'
-    ],
-    'Low': [
-      'Apply several months early',
-      'Ensure basic requirements met',
-      'Show interest and fit',
-      'Complete application thoroughly'
-    ]
+export const getSchoolsByLevel = (level: School['level']) => {
+  return schools.filter(school => school.level === level);
+};
+
+export const getSchoolsByCompetitiveness = (competitiveness: School['competitiveness']) => {
+  return schools.filter(school => school.competitiveness === competitiveness);
+};
+
+export const getPrivateSchools = () => {
+  return schools.filter(school =>
+    school.type === 'Private' ||
+    school.type === 'Independent' ||
+    school.type === 'Catholic'
+  );
+};
+
+export const getPublicChoicePrograms = () => {
+  return schools.filter(school =>
+    school.type === 'Public' ||
+    school.type === 'Mini School' ||
+    school.type === 'IB Program'
+  );
+};
+
+export const getSchoolsRequiringSSAT = () => {
+  return schools.filter(school => school.ssatRequired === true);
+};
+
+export const getSchoolsWithFinancialAid = () => {
+  return schools.filter(school => school.financialAid === true);
+};
+
+// ============================
+// APPLICATION TIMELINE HELPERS
+// ============================
+
+export const getApplicationTimeline = () => {
+  return {
+    'Early Planning': {
+      timeframe: 'January-March (year before)',
+      tasks: [
+        'Research schools and programs',
+        'Attend open houses and tours',
+        'Start SSAT preparation if needed',
+        'Plan family budget and financial aid needs'
+      ]
+    },
+    'Spring Preparation': {
+      timeframe: 'April-August',
+      tasks: [
+        'Continue SSAT prep (minimum 6 weeks)',
+        'Gather required documents',
+        'Request recommendation letters',
+        'Plan school visits and tours'
+      ]
+    },
+    'Application Season': {
+      timeframe: 'September-December',
+      tasks: [
+        'Attend school open houses',
+        'Take SSAT exams (if required)',
+        'Submit applications before deadlines',
+        'Complete parent/student interviews'
+      ]
+    },
+    'Assessment Period': {
+      timeframe: 'January-February',
+      tasks: [
+        'Participate in school assessments',
+        'Complete student interviews',
+        'Submit any additional documents',
+        'Wait for admission decisions'
+      ]
+    },
+    'Decision Time': {
+      timeframe: 'March-April',
+      tasks: [
+        'Receive admission decisions',
+        'Make final school choice',
+        'Submit enrollment deposits',
+        'Plan for September start'
+      ]
+    }
   };
-  return tips[competitiveness] || tips['Moderate'];
 };
 
 export const getTutoringRecommendations = () => {
