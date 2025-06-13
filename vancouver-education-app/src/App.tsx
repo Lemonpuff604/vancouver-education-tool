@@ -567,7 +567,11 @@ export default function App() {
                                   'border-green-500 text-green-700'
                                 }`}
                               >
-                                {school.competitiveness}
+                                 {school.competitiveness === 'Extremely High' ? 'Extremely High Competition' :
+                                 school.competitiveness === 'Very High' ? 'Very High Competition' :
+                                 school.competitiveness === 'High' ? 'High Competition' :
+                                 school.competitiveness === 'Moderate' ? 'Moderate Competition' :
+                                 'Low Competition'}
                               </Badge>
                             </div>
                             <p className="text-gray-600 mb-2">{school.grades}</p>
