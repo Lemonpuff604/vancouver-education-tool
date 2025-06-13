@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Slider styling for better visibility */
 .slider-visible input[type="range"] {
   -webkit-appearance: none;
@@ -16,66 +20,3 @@
   background: #3b82f6;
   border-radius: 50%;
   cursor: pointer;
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.slider-visible input[type="range"]::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  background: #3b82f6;
-  border-radius: 50%;
-  cursor: pointer;
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Progress bar styling */
-.slider-visible input[type="range"]::-webkit-slider-runnable-track {
-  background: linear-gradient(to right, #3b82f6 0%, #3b82f6 var(--progress, 0%), #e2e8f0 var(--progress, 0%), #e2e8f0 100%);
-}
-
-/* Better focus states */
-.slider-visible input[type="range"]:focus {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-}
-
-/* Custom badge styles */
-.badge-competitiveness-extremely-high {
-  @apply border-red-500 text-red-700 bg-red-50;
-}
-
-.badge-competitiveness-very-high {
-  @apply border-orange-500 text-orange-700 bg-orange-50;
-}
-
-.badge-competitiveness-high {
-  @apply border-yellow-500 text-yellow-700 bg-yellow-50;
-}
-
-.badge-competitiveness-moderate {
-  @apply border-green-500 text-green-700 bg-green-50;
-}
-
-.badge-competitiveness-low {
-  @apply border-blue-500 text-blue-700 bg-blue-50;
-}
-
-/* Card hover effects */
-.school-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease-in-out;
-}
-
-/* Disabled state styling */
-.school-card.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.school-card.disabled:hover {
-  transform: none;
-  box-shadow: none;
-}
