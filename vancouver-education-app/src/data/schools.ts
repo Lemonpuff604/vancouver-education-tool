@@ -613,7 +613,7 @@ export const schools: School[] = [
   applicationDeadline: 'December 19',
   features: ['Research projects','Philosophy seminars','Advanced studies'],
   competitiveness: 'Very High'
-}
+},
   
   // === SPECIALIZED & ALTERNATIVE SCHOOLS ===
   {
