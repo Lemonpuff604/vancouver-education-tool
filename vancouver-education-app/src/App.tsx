@@ -181,7 +181,9 @@ const priorities = [
       }
 
       if (tuitionValue > profile.budget) return false;
-    }
+      return true;
+    });
+    
 
   const formatBudget = (budget) => {
     if (budget === 0) return 'Public schools only (Free)';
